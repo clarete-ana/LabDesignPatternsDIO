@@ -34,21 +34,36 @@ public class ClientServiceImpl implements ClientService {
 
     @Override
     public void inserir(Cliente cliente) {
-       Long cep = cliente.getEndereco().getCep();
-       Endereco endereco = enderecoRepository.findById(cep).orElseGet(() ->{
-           Endereco novoEndereco = viaCepService.consultarCep(String.valueOf(cep));
-           return null;
-       });
+        salvarClienteComCep(cliente);
 
+    }
+
+    private void salvarClienteComCep(Cliente cliente) {
+        String cep = cliente.getEndereco().getCep();
+        Endereco endereco = enderecoRepository.findById(cep).orElseGet(() -> {
+            Endereco novoEndereco = viaCepService.consultarCep(cep);
+            if (novoEndereco != null) {
+                enderecoRepository.save(novoEndereco);
+            }
+            return novoEndereco;
+        });
+        if (endereco == null) {
+            throw new RuntimeException("Endereço não encontrado para o CEP: " + cep);
+        }
+        cliente.setEndereco(endereco);
+        clientRepository.save(cliente);
     }
 
     @Override
     public void atualizar(Long id, Cliente cliente) {
-
+        Optional<Cliente> clienteBd = clientRepository.findById(id);
+        if(clienteBd.isPresent()){
+            salvarClienteComCep(cliente);
+        }
     }
 
     @Override
     public void deletar(Long id) {
-
+        clientRepository.deleteById(id);
     }
 }
